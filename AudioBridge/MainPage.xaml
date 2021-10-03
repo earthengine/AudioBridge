@@ -1,0 +1,107 @@
+﻿<Page
+    x:Class="AudioBridge.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:AudioBridge.Models"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Page.Resources>
+        <DataTemplate x:Key="ComboBoxItemTemplate">
+            <TextBlock Margin="0,0,10,0" Text="{Binding Path=DisplayName}" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="ResultsListViewTemplate" x:DataType="models:DeviceInformationModel">
+            <Grid Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" MinWidth="100"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Height="40" Width="40" Margin="5" VerticalAlignment="Top">
+                    <Image Source="{x:Bind GlyphBitmapImage, Mode=OneWay}"
+                            Stretch="UniformToFill"/>
+                </Border>
+                <Border Grid.Column="1" Margin="5">
+                    <TextBlock Text="{x:Bind Name, Mode=OneWay}" FontWeight="Bold" TextWrapping="WrapWholeWords"/>
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="50*"/>
+                <ColumnDefinition Width="50*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Border Grid.Column="0" Grid.Row="0" Background="#ddf" >
+                <TextBlock Margin="10" FontSize="30">Input devices:</TextBlock>
+            </Border>
+            <ListView Grid.Column="0" Grid.Row="1" x:Name="audioCaptureView" Background="lavender"
+            ItemTemplate="{StaticResource ResultsListViewTemplate}" SelectionChanged="audioCaptureView_SelectionChanged"
+            ItemsSource="{Binding Path=AudioCaptures}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <ListViewItemPresenter SelectedBackground="#d6d6ea" 
+                                                        PointerOverBackground="#b5abca" 
+                                                        SelectedPointerOverBackground="#c6c6da" />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListView.ItemContainerStyle>
+            </ListView>
+            <Border Grid.Column="1" Grid.Row="0" Background="PowderBlue" >
+                <TextBlock FontSize="30" Margin="10">Output devices:</TextBlock>
+            </Border>
+            <ListView Grid.Column="1" Grid.Row="1" x:Name="audioRenderView" Background="#aac2e3"
+            SelectionMode="Multiple" SelectionChanged="audioRenderView_SelectionChanged"
+            IsMultiSelectCheckBoxEnabled="False" ItemsSource="{Binding Path=AudioRenders}"
+            ItemTemplate="{StaticResource ResultsListViewTemplate}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <ListViewItemPresenter SelectedBackground="#708090" 
+                                                        PointerOverBackground="#80a3d5"
+                                                        SelectedPointerOverBackground="#4e677d"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+            </ListView>
+        </Grid>
+        <controls:GridSplitter Grid.Row="1">
+            <controls:GridSplitter.Element>
+                <TextBlock HorizontalAlignment="Center"  IsHitTestVisible="False"
+                    VerticalAlignment="Center" Text="&#xE700;"
+                    Foreground="Black" FontFamily="Segoe MDL2 Assets"/>
+            </controls:GridSplitter.Element>
+        </controls:GridSplitter>
+
+        <ScrollViewer Grid.Row="2" x:Name="scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+            <Border Background="PaleTurquoise">
+                <TextBlock x:Name="message" Text="{Binding Path=LogMessages}" IsTextSelectionEnabled="True"/>
+            </Border>
+        </ScrollViewer>
+    </Grid>
+</Page>

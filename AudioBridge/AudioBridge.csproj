@@ -125,7 +125,6 @@
     <Compile Include="Models\AudioGraphManager.cs" />
     <Compile Include="Models\DeviceInformationModel.cs" />
     <Compile Include="Models\Settings.cs" />
-    <Compile Include="Models\ThreadTaskQueue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

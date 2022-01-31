@@ -54,7 +54,7 @@ namespace AudioBridge.Models
 
         public void AddLogMessage(string msg)
         {
-            logMessages.AppendLine(msg);
+            logMessages.Insert(0, $"{msg}\r\n");
             OnPropertyUpdated(nameof(LogMessages));
         }
 
@@ -63,35 +63,26 @@ namespace AudioBridge.Models
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
-        private async Task RunEventForeground(Action foregroundHandler)
+        private async Task RunEvent(Action foregroundHandler)
         {
             await foregroundDispatcher.RunAsync(CoreDispatcherPriority.Low, () => foregroundHandler());
-        }
-        private async Task RunEvenBackground(Action backgroundHandler)
-        {
-            await Task.Run(() => App.CurrentApp.RunTaskInBackground(backgroundHandler));
         }
 
         private async void CaptureDeviceWatcher_Stopped(DeviceWatcher sender, object args)
         {
-            await RunEventForeground(() => AddLogMessage("Capture device watcher stopped"));
+            await RunEvent(() => AddLogMessage("Capture device watcher stopped"));
         }
 
         private async void RenderDeviceWatcher_Stopped(DeviceWatcher sender, object args)
         {
-            await RunEventForeground(() => AddLogMessage("Render device watcher stopped"));
+            await RunEvent(() => AddLogMessage("Render device watcher stopped"));
         }
 
         private async void CaptureDeviceWatcher_Removed(DeviceWatcher sender, DeviceInformationUpdate args)
         {
-            DeviceInformationModel device = null;
-            await RunEvenBackground(() =>
-            {
-                device = AudioCaptures.Where(d => d.Id == args.Id).First();
+            await RunEvent(() => {
+                var device = AudioCaptures.Where(d => d.Id == args.Id).First();
                 removedDevices.Add(device.Id);
-            });
-            if (device == null) return;
-            await RunEventForeground(() => {
                 AudioCaptures.Remove(device);
                 OnPropertyUpdated(nameof(AudioCaptures));
                 AddLogMessage($"Capture Device {device.Name} has been removed");
@@ -100,7 +91,7 @@ namespace AudioBridge.Models
 
         private async void CaptureDeviceWatcher_Updated(DeviceWatcher sender, DeviceInformationUpdate args)
         {
-            await RunEventForeground(async () => {
+            await RunEvent(async () => {
                 var device = AudioCaptures.Where(d => d.Id == args.Id).First();
                 await device.Update(args);
                 OnPropertyUpdated(nameof(AudioCaptures));
@@ -110,7 +101,7 @@ namespace AudioBridge.Models
 
         private async void CaptureDeviceWatcher_Added(DeviceWatcher sender, DeviceInformation device)
         {
-            await RunEventForeground(async () => {
+            await RunEvent(async () => {
                 var devModel = await DeviceInformationModel.Create(device);
                 AudioCaptures.Add(devModel);
                 OnPropertyUpdated(nameof(AudioCaptures));
@@ -128,13 +119,10 @@ namespace AudioBridge.Models
 
         private async void RenderDeviceWatcher_Removed(DeviceWatcher sender, DeviceInformationUpdate args)
         {
-            DeviceInformationModel device = null;
-            await RunEventForeground(() =>
+            await RunEvent(() =>
             {
-                device = AudioRenders.Where(d => d.Id == args.Id).First();
+                var device = AudioRenders.Where(d => d.Id == args.Id).First();
                 removedDevices.Add(device.Id);
-            });
-            await RunEventForeground(() => { 
                 AudioRenders.Remove(device); 
                 OnPropertyUpdated(nameof(AudioRenders)); 
                 AddLogMessage($"Render Device {device.Name} has been removed"); 
@@ -143,7 +131,7 @@ namespace AudioBridge.Models
 
         private async void RenderDeviceWatcher_Updated(DeviceWatcher sender, DeviceInformationUpdate args)
         {
-            await RunEventForeground(async () => {
+            await RunEvent(async () => {
                 var device = AudioRenders.Where(d => d.Id == args.Id).First();
                 await device.Update(args);
                 OnPropertyUpdated(nameof(AudioRenders));
@@ -153,7 +141,7 @@ namespace AudioBridge.Models
 
         private async void RenderDeviceWatcher_Added(DeviceWatcher sender, DeviceInformation device)
         {
-            await RunEventForeground(async () => {
+            await RunEvent(async () => {
                 var devModel = await DeviceInformationModel.Create(device);
                 AudioRenders.Add(devModel);
                 OnPropertyUpdated(nameof(AudioRenders));
@@ -212,13 +200,13 @@ namespace AudioBridge.Models
             var newGraphs = new List<AudioGraph>();
             var currentSelected = currentSelectedOutputs.ToList();
 
-            await RunEvenBackground(async () =>
+            await RunEvent(async () =>
             {
                 foreach (var graph in audioGraphs)
                 {
                     var outputDevice = graph.PrimaryRenderDevice;
                     graph.Stop();
-                    await RunEventForeground(() =>
+                    await RunEvent(() =>
                     {
                         AddLogMessage($"Graph stopped: {previous.Name} -> {outputDevice.Name}");
                     });
@@ -232,7 +220,7 @@ namespace AudioBridge.Models
 
                     newGraph.Start();
                     newGraphs.Add(newGraph);
-                    await RunEventForeground(() =>
+                    await RunEvent(() =>
                     {
                         AddLogMessage($"Graph created: {input.Name} -> {outputDevice.Name}");
                     });
@@ -244,7 +232,7 @@ namespace AudioBridge.Models
         }
         private async Task UnsetAutoConnectIfNotRemoved(DeviceInformationModel device)
         {
-            await RunEventForeground(() =>
+            await RunEvent(() =>
             {
                 if (removedDevices.Contains(device.Id))
                 {
@@ -260,7 +248,7 @@ namespace AudioBridge.Models
         {
             var removedDevices = removed.ToList();
             var addedDevices = added.ToList();
-            await RunEvenBackground(async () =>
+            await RunEvent(async () =>
             {
                 foreach (var device in removedDevices)
                 {
@@ -269,7 +257,7 @@ namespace AudioBridge.Models
                     var outputDevice = graph.PrimaryRenderDevice;
                     graph.Stop();
                     audioGraphs.Remove(graph);
-                    await RunEventForeground(async () =>
+                    await RunEvent(async () =>
                     {
                         AddLogMessage($"Graph stopped: {currentSelectedInput.Name} -> {outputDevice.Name}");
                         AudioGraphRemoved?.Invoke(currentSelectedInput, await DeviceInformationModel.Create(outputDevice));
@@ -282,7 +270,7 @@ namespace AudioBridge.Models
                     var graph = await CreateAudioGraphAsync(currentSelectedInput.DeviceInformation, output.DeviceInformation);
                     audioGraphs.Add(graph);
                     graph.Start();
-                    await RunEventForeground(() =>
+                    await RunEvent(() =>
                     {
                         AddLogMessage($"Graph created: {currentSelectedInput.Name} -> {output.Name}");
                         NewAudioGraphCreated?.Invoke(currentSelectedInput, output);
@@ -294,7 +282,7 @@ namespace AudioBridge.Models
 
         public async void Play()
         {
-            await RunEvenBackground(() =>
+            await RunEvent(() =>
             {
                 foreach (var ag in audioGraphs)
                 {
@@ -305,7 +293,7 @@ namespace AudioBridge.Models
 
         public async void Pause()
         {
-            await RunEvenBackground(() =>
+            await RunEvent(() =>
             {
                 foreach (var ag in audioGraphs)
                 {

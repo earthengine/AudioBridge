@@ -98,7 +98,7 @@
             </controls:GridSplitter.Element>
         </controls:GridSplitter>
 
-        <ScrollViewer Grid.Row="2" x:Name="scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+        <ScrollViewer Grid.Row="2" x:Name="scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden" MaxHeight="400">
             <Border Background="PaleTurquoise">
                 <TextBlock x:Name="message" Text="{Binding Path=LogMessages}" IsTextSelectionEnabled="True"/>
             </Border>

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
+using System.Linq;
+using System.Text;
 using Windows.Storage;
 
 namespace AudioBridge.Models
@@ -18,16 +18,30 @@ namespace AudioBridge.Models
             Volumn = 100;
             Balance = 50;
         }
+        public static DeviceSettings Parse(string s)
+        {
+            var values = s.Split(',');
+            return new DeviceSettings
+            {
+                AutoConnect = values[1].ToLower() == "true",
+                Balance = int.Parse(values[3]),
+                Name = values[0],
+                Volumn = int.Parse(values[2])
+            };
+        }
+        public string ToString()
+        {
+            return $"{Name},{AutoConnect},{Volumn},{Balance}";
+        }
     }
 
     public static class Settings
     {
         private static ApplicationDataContainer localSettings;
-        private static DataContractSerializer settingsSerializer;
+        private static Dictionary<string, DeviceSettings> devices;
         static Settings()
         {
             localSettings = ApplicationData.Current.LocalSettings;
-            settingsSerializer = new DataContractSerializer(typeof(Dictionary<string, DeviceSettings>));
 
             if (localSettings.Values.ContainsKey("devices"))
             {
@@ -39,35 +53,34 @@ namespace AudioBridge.Models
                 SerializeObject(devices);
             }
         }
-
         private static void SerializeObject(Dictionary<string, DeviceSettings> devices)
         {
-            using (var ms = new MemoryStream())
+            var sb = new StringBuilder();
+            foreach((var id, var dev) in devices)
             {
-                using (var rd = new StreamReader(ms))
-                {
-                    settingsSerializer.WriteObject(ms, devices);
-                    ms.Seek(0, SeekOrigin.Begin);
-                    localSettings.Values["devices"] = rd.ReadToEnd();
-                }
+                sb.Append($"~{id}@{dev.ToString()}");
             }
+            localSettings.Values["devices"] = sb.ToString();
         }
         private static Dictionary<string, DeviceSettings> DeserializeObject()
         {
-            using (var ms = new MemoryStream())
+            var result = new Dictionary<string, DeviceSettings>();
+            var devices = localSettings.Values["devices"].ToString().Split('~');
+            foreach (var device in devices)
             {
-                using (var wr = new StreamWriter(ms))
+                if (!device.Any()) continue;
+                var dev_value = device.Split('@');
+                if (result.ContainsKey(dev_value[0]))
                 {
-                    wr.Write(localSettings.Values["devices"].ToString());
-                    wr.Flush();
-                    ms.Seek(0, SeekOrigin.Begin);
-                    return settingsSerializer.ReadObject(ms) as Dictionary<string, DeviceSettings>;
+                    result[dev_value[0]] = DeviceSettings.Parse(dev_value[1]);
+                } 
+                else
+                {
+                    result.Add(dev_value[0], DeviceSettings.Parse(dev_value[1]));
                 }
-            }
+            }            
+            return result;
         }
-
-        private static Dictionary<string, DeviceSettings> devices;
-
         public static bool IsDeviceSetForAutoConnect(DeviceInformationModel di)
         {
             if (devices.ContainsKey(di.Id)) { return devices[di.Id].AutoConnect; }
